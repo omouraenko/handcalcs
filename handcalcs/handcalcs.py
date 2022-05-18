@@ -84,6 +84,15 @@ GREEK_UPPER = {
     "Lamb": "\\Lambda",
 }
 
+# LaTeX elements
+#opener = "\\["
+#closer = "\\]"
+opener = "$$"
+closer = "$$"
+begin = "\\begin{aligned}"
+end = "\\end{aligned}"
+line_break = "\\\\[10pt]\n"
+
 # Six basic line types
 @dataclass
 class CalcLine:
@@ -821,11 +830,6 @@ def format_parameters_cell(cell: ParameterCell, dec_sep: str):
     """
     cols = cell.cols
     precision = cell.precision
-    opener = "\\["
-    begin = "\\begin{aligned}"
-    end = "\\end{aligned}"
-    closer = "\\]"
-    line_break = "\\\\[10pt]\n"
     cycle_cols = itertools.cycle(range(1, cols + 1))
     for line in cell.lines:
         line = round_and_render_line_objects_to_latex(line, precision, dec_sep)
@@ -843,7 +847,7 @@ def format_parameters_cell(cell: ParameterCell, dec_sep: str):
                 else:
                     outgoing.append(expr)
             line.latex_expressions = " ".join(outgoing)
-            line.latex = line.latex_condition + line.latex_expressions
+            line.latex = "\n".join([line.latex_condition, line.latex_expressions])
         else:
             latex_param = line.latex
 
@@ -864,7 +868,6 @@ def format_parameters_cell(cell: ParameterCell, dec_sep: str):
 
 @format_cell.register(CalcCell)
 def format_calc_cell(cell: CalcCell, dec_sep: str) -> str:
-    line_break = "\\\\[10pt]\n"
     precision = cell.precision
     incoming = deque([])
     for line in cell.lines:
@@ -875,19 +878,12 @@ def format_calc_cell(cell: CalcCell, dec_sep: str) -> str:
     cell.lines = incoming
 
     latex_block = line_break.join([line.latex for line in cell.lines if line.latex])
-    opener = "\\["
-    begin = "\\begin{aligned}"
-    end = "\\end{aligned}"
-    closer = "\\]"
-    cell.latex_code = "\n".join([opener, begin, latex_block, end, closer]).replace(
-        "\n" + end, end
-    )
+    cell.latex_code = "\n".join([opener, begin, latex_block, end, closer])
     return cell
 
 
 @format_cell.register(ShortCalcCell)
 def format_shortcalc_cell(cell: ShortCalcCell, dec_sep: str) -> str:
-    line_break = "\\\\[10pt]\n"
     precision = cell.precision
     incoming = deque([])
     for line in cell.lines:
@@ -897,19 +893,12 @@ def format_shortcalc_cell(cell: ShortCalcCell, dec_sep: str) -> str:
     cell.lines = incoming
 
     latex_block = line_break.join([line.latex for line in cell.lines if line.latex])
-    opener = "\\["
-    begin = "\\begin{aligned}"
-    end = "\\end{aligned}"
-    closer = "\\]"
-    cell.latex_code = "\n".join([opener, begin, latex_block, end, closer]).replace(
-        "\n" + end, end
-    )
+    cell.latex_code = "\n".join([opener, begin, latex_block, end, closer])
     return cell
 
 
 @format_cell.register(LongCalcCell)
 def format_longcalc_cell(cell: LongCalcCell, dec_sep: str) -> str:
-    line_break = "\\\\[10pt]\n"
     precision = cell.precision
     incoming = deque([])
     for line in cell.lines:
@@ -920,19 +909,12 @@ def format_longcalc_cell(cell: LongCalcCell, dec_sep: str) -> str:
     cell.lines = incoming
 
     latex_block = line_break.join([line.latex for line in cell.lines if line.latex])
-    opener = "\\["
-    begin = "\\begin{aligned}"
-    end = "\\end{aligned}"
-    closer = "\\]"
-    cell.latex_code = "\n".join([opener, begin, latex_block, end, closer]).replace(
-        "\n" + end, end
-    )
+    cell.latex_code = "\n".join([opener, begin, latex_block, end, closer])
     return cell
 
 
 @format_cell.register(SymbolicCell)
 def format_symbolic_cell(cell: SymbolicCell, dec_sep: str) -> str:
-    line_break = "\\\\[10pt]\n"
     precision = cell.precision
     incoming = deque([])
     for line in cell.lines:
@@ -942,13 +924,7 @@ def format_symbolic_cell(cell: SymbolicCell, dec_sep: str) -> str:
     cell.lines = incoming
 
     latex_block = line_break.join([line.latex for line in cell.lines if line.latex])
-    opener = "\\["
-    begin = "\\begin{aligned}"
-    end = "\\end{aligned}"
-    closer = "\\]"
-    cell.latex_code = "\n".join([opener, begin, latex_block, end, closer]).replace(
-        "\n" + end, end
-    )
+    cell.latex_code = "\n".join([opener, begin, latex_block, end, closer])
     return cell
 
 
@@ -1311,11 +1287,11 @@ def format_conditional_line(line: ConditionalLine) -> ConditionalLine:
         if line.comment:
             comment_space = "\\;"
             comment = format_strings(line.comment, comment=True)
-        new_math_env = "\n\\end{aligned}\n\\]\n\\[\n\\begin{aligned}\n"
-        first_line = f"&\\text{a}Since, {b} {latex_condition} : {comment_space} {comment} {new_math_env}"
+        new_math_env = "\n".join([end, closer, opener, begin])
+        first_line = f"&\\text{a}Since, {b} {latex_condition} : {comment_space} {comment}\n{new_math_env}"
         if line.condition_type == "else":
             first_line = ""
-        line_break = "\\\\[10pt]\n"
+        line_break = "\\\\\n"
         line.latex_condition = first_line
 
         outgoing = deque([])
@@ -1323,7 +1299,7 @@ def format_conditional_line(line: ConditionalLine) -> ConditionalLine:
             outgoing.append((format_lines(calc_line)).latex)
         line.true_expressions = outgoing
         line.latex_expressions = line_break.join(line.true_expressions)
-        line.latex = line.latex_condition + line.latex_expressions
+        line.latex = "\n".join([line.latex_condition, line.latex_expressions])
         return line
     else:
         line.condition_latex = ""
@@ -1353,15 +1329,14 @@ def format_long_calc_line(line: LongCalcLine) -> LongCalcLine:
 @format_lines.register(ParameterLine)
 def format_param_line(line: ParameterLine) -> ParameterLine:
     comment_space = "\\;"
-    line_break = "\n"
     if "=" in line.latex:
         replaced = line.latex.replace("=", "&=")
         comment = format_strings(line.comment, comment=True)
-        line.latex = f"{replaced} {comment_space} {comment}{line_break}"
+        line.latex = f"{replaced} {comment_space} {comment}"
     else:  # To handle sympy symbols displayed alone
         replaced = line.latex.replace(" ", comment_space)
         comment = format_strings(line.comment, comment=True)
-        line.latex = f"{replaced} {comment_space} {comment}{line_break}"
+        line.latex = f"{replaced} {comment_space} {comment}"
     return line
 
 
