@@ -1291,6 +1291,8 @@ def format_conditional_line(line: ConditionalLine) -> ConditionalLine:
         first_line = f"&\\text{a}Since, {b} {latex_condition} : {comment_space} {comment}\n{new_math_env}"
         if line.condition_type == "else":
             first_line = ""
+        else:
+            comment = "" # don't repeat comment
         line_break = "\\\\\n"
         line.latex_condition = first_line
 
@@ -1299,7 +1301,7 @@ def format_conditional_line(line: ConditionalLine) -> ConditionalLine:
             outgoing.append((format_lines(calc_line)).latex)
         line.true_expressions = outgoing
         line.latex_expressions = line_break.join(line.true_expressions)
-        line.latex = "\n".join([line.latex_condition, line.latex_expressions])
+        line.latex = "\n".join([line.latex_condition, line.latex_expressions, comment])
         return line
     else:
         line.condition_latex = ""
